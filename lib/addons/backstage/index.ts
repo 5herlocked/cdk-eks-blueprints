@@ -1,10 +1,21 @@
 import { ClusterInfo } from "../../spi";
 import { HelmAddOn, HelmAddOnProps, HelmAddOnUserProps } from "../helm-addon";
+import {KubernetesSecret} from "../secrets-store/csi-driver-provider-aws-secrets";
 
 /**
  * Configuration options for the add-on as listed in
  * https://github.com/vinzscam/backstage-chart 
  */
+
+export interface BackstageAddOnVars {
+    name: string,
+    value: string,
+}
+
+export interface BackstageExtraConfigMap {
+    fileName: string,
+    configMapRef: ConfigMapRef,
+}
 
 export interface BackstageAddOnProps extends HelmAddOnUserProps {
 
@@ -48,7 +59,7 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
      * Array of extra objects to deploy with the release
      * @default []
      */
-    extraDeploy?: [];
+    extraDeploy?: string[];
 
     /**
      * Paramaters to define diagnostic mode
@@ -64,12 +75,12 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
          * Command to override all containers in the stateful set
          * @default ["sleep"]
          */
-        command: [],
+        command: string[],
         /**
          * Args to override all containers in the stateful set
          * @default ["infinity"]
          */
-        args: []
+        args: string[]
     }
 
     /**
@@ -85,7 +96,7 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
          * Global Docker registry secret names as an array
          * @default []
          */
-        imagePullSecrets: string,
+        imagePullSecrets: KubernetesSecret[],
         /**
          * Global StorageClass for Persistent Volume(s)
          * @default ""
@@ -105,7 +116,7 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
              * Backstage image registry
              * @default ""
              */
-            registery?: string,
+            registry?: string,
             /**
              * Backstage image repository (required)
              * @default ""
@@ -125,30 +136,30 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
              * Specify docker-registry secret names as an array
              * @default []
              */
-            pullSecerts: [],
+            pullSecrets: string[],
         },
         /**
          * Override Backstage container command
          * @default ["node", "packages/backend"]
          */
-        command?: [],
+        command?: string[],
         /**
          * Override Backstage container arguments
          * @default ["--config", "app-config.yaml", "--config", "app-config-production.yaml"]
          */
-        args?: [],
+        args?: string[],
         /**
          * Extra environment variables to add to Backstage pods
          */
-        extraEnvVars?: [],
+        extraEnvVars?: BackstageAddOnVars[],
         /**
          * ConfigMap with extra environment variables
          */
-        extraAppConfig?: [],
+        extraAppConfig?: BackstageExtraConfigMap[],
         /**
          * Array of existing secrets containing sensitive environment variables
          */
-        extraEnvVarsSecrets?: [],
+        extraEnvVarsSecrets?: KubernetesSecret[],
     };
 
     /**
@@ -202,7 +213,7 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
          * Backstage service load balancer sources
          * @default []
          */
-        loadBalancerSourceRanges: [],
+        loadBalancerSourceRanges: string[],
         /**
          * Backstage service external traffic policy
          * @default Cluster
@@ -217,7 +228,7 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
          * Extra ports to expose in Backstage
          * @default []
          */
-        extraPorts: [],
+        extraPorts: string[],
 
         ports: {
             /**
@@ -248,6 +259,48 @@ const defaultProps: HelmAddOnProps & BackstageAddOnProps = {
     values: {},
 
     // Backstage AddOnProps
+    // Currently set to the defaults recommended by the helm chart
+    clusterDomain: "cluster.local",
+    diagnosticMode: {
+        enabled: false,
+        command: ["sleep"],
+        args: ["infinity"]
+    },
+
+    backstage: {
+        image: {
+            registry: "",
+            repository: "",
+            tag: "",
+            pullPolicy: "IfNotPresent",
+            pullSecrets: [],
+        },
+        command: ["node", "packages/backend"],
+        args: ["--config", "app-config.yaml", "--config", "app-config-production.yaml"],
+    },
+
+    ingress: {
+        enabled: false,
+        className: "",
+        host: "",
+    },
+
+    service: {
+        type: "ClusterIP",
+        ports: {
+            backend: "7007",
+        },
+        nodePorts: {
+            backend: ""
+        },
+        sessionAffinity: "None",
+        clusterIP: "",
+        loadBalancerIP: "",
+        loadBalancerSourceRanges: [],
+        externalTrafficPolicy: "Cluster",
+        annotations: {},
+        extraPorts: []
+    }
     /**
      * TODO: Finish testing for deployment verification and "good" common-sense defaults for the deployment
      */
@@ -263,6 +316,14 @@ export class BackstageAddOn extends HelmAddOn {
     }
 
     deploy(clusterInfo: ClusterInfo): void {
+        const cluster = clusterInfo.cluster;
 
+        createSecretRef()
+
+        let values = this.options.values ?? {};
+
+        // Create persistent storage with EBS
+        const storageClass = this.options.global?.storageClass || "";
+        
     }
 }
