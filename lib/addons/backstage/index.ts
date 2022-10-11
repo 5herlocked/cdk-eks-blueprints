@@ -13,8 +13,11 @@ export interface BackstageAddOnVars {
 }
 
 export interface BackstageExtraConfigMap {
-    fileName: string,
-    configMapRef: ConfigMapRef,
+    // in the manifest file, this directly accepts yaml files
+    // we need a way to ingest a file, convert it to a "config map" object
+    // then merge it with the final manifest
+    reference: string,
+
 }
 
 export interface BackstageAddOnProps extends HelmAddOnUserProps {
@@ -317,8 +320,6 @@ export class BackstageAddOn extends HelmAddOn {
 
     deploy(clusterInfo: ClusterInfo): void {
         const cluster = clusterInfo.cluster;
-
-        createSecretRef()
 
         let values = this.options.values ?? {};
 
