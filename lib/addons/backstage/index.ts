@@ -248,7 +248,9 @@ const defaultProps: HelmAddOnProps & BackstageAddOnProps = {
     values: {},
 
     // Backstage AddOnProps
-    
+    /**
+     * TODO: Finish testing for deployment verification and "good" common-sense defaults for the deployment
+     */
 };
 
 export class BackstageAddOn extends HelmAddOn {
