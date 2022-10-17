@@ -1,6 +1,6 @@
 import { ClusterInfo } from "../../spi";
 import { HelmAddOn, HelmAddOnProps, HelmAddOnUserProps } from "../helm-addon";
-import {KubernetesSecret} from "../secrets-store/csi-driver-provider-aws-secrets";
+import { KubernetesSecret } from "../secrets-store/csi-driver-provider-aws-secrets";
 
 /**
  * Configuration options for the add-on as listed in
@@ -10,14 +10,6 @@ import {KubernetesSecret} from "../secrets-store/csi-driver-provider-aws-secrets
 export interface BackstageAddOnVars {
     name: string,
     value: string,
-}
-
-export interface BackstageExtraConfigMap {
-    // in the manifest file, this directly accepts yaml files
-    // we need a way to ingest a file, convert it to a "config map" object
-    // then merge it with the final manifest
-    reference: string,
-
 }
 
 export interface BackstageAddOnProps extends HelmAddOnUserProps {
@@ -158,7 +150,7 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
         /**
          * ConfigMap with extra environment variables
          */
-        extraAppConfig?: BackstageExtraConfigMap[],
+        extraAppConfig?: any,
         /**
          * Array of existing secrets containing sensitive environment variables
          */
