@@ -12,6 +12,18 @@ export interface BackstageAddOnVars {
     value: string,
 }
 
+/*
+ * TODO: Test if ConfigMap works
+ */
+export interface ConfigMapData {
+    data: [Map<string, string>]
+}
+
+export interface ConfigMap {
+    name: string,
+    data: string | ConfigMapData
+}
+
 export interface BackstageAddOnProps extends HelmAddOnUserProps {
 
     /**
@@ -150,7 +162,7 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
         /**
          * ConfigMap with extra environment variables
          */
-        extraAppConfig?: any,
+        extraAppConfig?: ConfigMap[],
         /**
          * Array of existing secrets containing sensitive environment variables
          */
