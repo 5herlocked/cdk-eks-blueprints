@@ -1,6 +1,9 @@
-import { ClusterInfo } from "../../spi";
-import { HelmAddOn, HelmAddOnProps, HelmAddOnUserProps } from "../helm-addon";
+import {Construct} from "constructs";
+import {ClusterInfo, Values} from "../../spi";
+import {createNamespace, dependable, setPath} from "../../utils";
 import { KubernetesSecret } from "../secrets-store/csi-driver-provider-aws-secrets";
+import { HelmAddOn, HelmAddOnProps, HelmAddOnUserProps } from "../helm-addon";
+import merge from "ts-deepmerge";
 
 /**
  * Configuration options for the add-on as listed in
@@ -12,9 +15,6 @@ export interface BackstageAddOnVars {
     value: string,
 }
 
-/*
- * TODO: Test if ConfigMap works
- */
 export interface ConfigMapData {
     data: [Map<string, string>]
 }
@@ -25,12 +25,6 @@ export interface ConfigMap {
 }
 
 export interface BackstageAddOnProps extends HelmAddOnUserProps {
-
-    /**
-     * Override Kubernetes version
-     * @default "" 
-     */
-    kubeVersion?: string;
 
     /**
      * String to partially override common.names.fullname
@@ -109,16 +103,22 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
          * @default ""
          */
         storageClass: string,
+
+        /**
+         * Global Storage Size for Persistent Volume(s)
+         * @default ""
+         */
+        storageSize: string
     };
 
     /**
      * Parameters passed to Backstage
      */
-    backstage?: {
+    backstage: {
         /**
          * Parameters for Backstage images
          */
-        image?: {
+        image: {
             /**
              * Backstage image registry
              * @default ""
@@ -138,12 +138,12 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
              * Backstage image pull policy
              * @default IfNotPresent
              */
-            pullPolicy: string,
+            pullPolicy?: string,
             /**
              * Specify docker-registry secret names as an array
              * @default []
              */
-            pullSecrets: string[],
+            pullSecrets?: string[],
         },
         /**
          * Override Backstage container command
@@ -252,6 +252,19 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
              */
             backend: string
         }
+    },
+
+    postgres?: {
+        enabled: boolean,
+        auth?: {
+            existingSecret?: string,
+            password?: string,
+            secretKeys?: {
+                adminPasswordKey: string,
+                userPasswordKey: string,
+                replicationPasswordKey: string
+            }
+        }
     }
 }
 
@@ -259,7 +272,7 @@ const defaultProps: HelmAddOnProps & BackstageAddOnProps = {
     // Helm AddOnProps
     name: 'backstage-addon',
     namespace: 'kube-system',
-    version: '0.3.1',
+    version: '0.4.0',
     chart: 'backstage-chart',
     repository: 'https://vinzscam.github.io/',
     release: 'blueprints-addon-backstage',
@@ -307,6 +320,9 @@ const defaultProps: HelmAddOnProps & BackstageAddOnProps = {
         externalTrafficPolicy: "Cluster",
         annotations: {},
         extraPorts: []
+    },
+    postgres: {
+        enabled: true
     }
     /**
      * TODO: Finish testing for deployment verification and "good" common-sense defaults for the deployment
@@ -315,20 +331,57 @@ const defaultProps: HelmAddOnProps & BackstageAddOnProps = {
 
 export class BackstageAddOn extends HelmAddOn {
 
-    private options: BackstageAddOnProps;
+    readonly options: BackstageAddOnProps;
 
-    constructor(props?: BackstageAddOnProps) {
+    constructor(props: BackstageAddOnProps) {
         super({...defaultProps, ...props });
         this.options = this.props as BackstageAddOnProps;
     }
 
-    deploy(clusterInfo: ClusterInfo): void {
-        const cluster = clusterInfo.cluster;
+    @dependable('EbsCsiDriverAddOn')
+    deploy(clusterInfo: ClusterInfo): Promise<Construct> {
+        let values = populateValues(this.options);
 
-        let values = this.options.values ?? {};
+        values = merge(values, this.props.values ?? {});
+        // Create Helm Chart
+        const backstageHelmChart = this.addHelmChart(clusterInfo, values, false, true);
 
-        // Create persistent storage with EBS
-        const storageClass = this.options.global?.storageClass || "";
-        
+        return Promise.resolve(backstageHelmChart);
     }
+}
+
+/**
+ * populateValues populates the appropriate values used to customize the Helm chart
+ * @param helmOptions User provided values to customize the chart
+ */
+function populateValues(helmOptions: BackstageAddOnProps): Values {
+    let values = helmOptions.values ?? {};
+
+    // Global Parameters setup
+
+    // Common Parameters setup
+
+    // Backstage Parameters setup
+    const backstageImageRepo = helmOptions.backstage.image.repository;
+    const backstageImageTag = helmOptions.backstage.image.tag;
+    setPath(values, 'backstage.image.repository', backstageImageRepo);
+    setPath(values, 'backstage.image.tag', backstageImageTag);
+
+    // Traffic Exposure Parameters setup
+
+    // Create persistent storage with EBS
+    const storageClass = helmOptions.global?.storageClass || "";
+    const storageSize = helmOptions.global?.storageSize || "";
+    setPath(values, 'global.storageClass', storageClass);
+    setPath(values, 'global.storageSize', storageSize);
+
+    // Secrets Setup
+
+    // Extra ConfigMaps setup
+
+    // Postgres Setup
+    const postgresEnabled = helmOptions.postgres?.enabled || true;
+    setPath(values, 'postgres.enabled', postgresEnabled);
+
+    return values;
 }
