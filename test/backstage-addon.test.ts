@@ -21,7 +21,8 @@ test("Accepts relatively complex BackstageConfigMaps", async () => {
 
         postgres: {
             enabled: true,
-        }
+        },
+
     };
 
     const backstageAddOn = new blueprints.BackstageAddOn(backstageProps);
@@ -31,7 +32,7 @@ test("Accepts relatively complex BackstageConfigMaps", async () => {
         .clusterProvider(clusterProvider)
         .addOns(new blueprints.EbsCsiDriverAddOn(), backstageAddOn)
         .build(app, 'stack-with-complex-backstage-add-on');
-
+    expect(blueprint).toBeDefined();
 });
 
 test("Actually creates and deploys a backstage instance", () => {

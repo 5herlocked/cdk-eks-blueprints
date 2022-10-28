@@ -1,9 +1,9 @@
-import {Construct} from "constructs";
-import {ClusterInfo, Values} from "../../spi";
-import {createNamespace, dependable, setPath} from "../../utils";
-import { KubernetesSecret } from "../secrets-store/csi-driver-provider-aws-secrets";
-import { HelmAddOn, HelmAddOnProps, HelmAddOnUserProps } from "../helm-addon";
 import merge from "ts-deepmerge";
+import { Construct } from "constructs";
+import { ClusterInfo, Values } from "../../spi";
+import { dependable, setPath} from "../../utils";
+import { HelmAddOn, HelmAddOnProps, HelmAddOnUserProps } from "../helm-addon";
+import { KubernetesSecret } from "../secrets-store/csi-driver-provider-aws-secrets";
 
 /**
  * Configuration options for the add-on as listed in
@@ -182,7 +182,7 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
          * Name of the IngressClass cluster resource
          * @default ""
          */
-        className: string,
+        className?: string,
         /**
          * Additional annotations for the Ingress resource
          * @default {}
@@ -192,7 +192,7 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
          * Hostname of the backstage application (e.g backstage.nip.io)
          * @default ""
          */
-        host: "",
+        host?: "",
     };
 
     service?: {
@@ -274,8 +274,8 @@ const defaultProps: HelmAddOnProps & BackstageAddOnProps = {
     namespace: 'kube-system',
     version: '0.4.0',
     chart: 'backstage-chart',
-    repository: 'https://vinzscam.github.io/',
-    release: 'blueprints-addon-backstage',
+    repository: 'https://vinzscam.github.io/backstage-chart/',
+    release: 'backstage',
     values: {},
 
     // Backstage AddOnProps
