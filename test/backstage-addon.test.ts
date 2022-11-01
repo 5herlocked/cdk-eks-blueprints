@@ -32,6 +32,8 @@ test("Accepts relatively complex BackstageConfigMaps", async () => {
         .clusterProvider(clusterProvider)
         .addOns(new blueprints.EbsCsiDriverAddOn(), backstageAddOn)
         .build(app, 'stack-with-complex-backstage-add-on');
+
+    console.log(blueprint);
     expect(blueprint).toBeDefined();
 });
 

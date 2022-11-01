@@ -7,7 +7,9 @@ import { KubernetesSecret } from "../secrets-store/csi-driver-provider-aws-secre
 
 /**
  * Configuration options for the add-on as listed in
- * https://github.com/vinzscam/backstage-chart 
+ * https://github.com/vinzscam/backstage-chart
+ * Pivoting to use the redhat chart for backstage-deployment
+ * https://github.com/redhat-developer/helm-backstage/tree/main/charts/backstage
  */
 
 export interface BackstageAddOnVars {
@@ -271,11 +273,11 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
 const defaultProps: HelmAddOnProps & BackstageAddOnProps = {
     // Helm AddOnProps
     name: 'backstage-addon',
-    namespace: 'kube-system',
-    version: '0.4.0',
-    chart: 'backstage-chart',
-    repository: 'https://vinzscam.github.io/backstage-chart/',
-    release: 'backstage',
+    namespace: 'backstage',
+    version: '0.3.1',
+    chart: 'backstage/backstage',
+    repository: 'https://vinzscam.github.io/backstage-chart',
+    release: 'blueprints-addon-backstage',
     values: {},
 
     // Backstage AddOnProps
@@ -345,6 +347,8 @@ export class BackstageAddOn extends HelmAddOn {
         values = merge(values, this.props.values ?? {});
         // Create Helm Chart
         const backstageHelmChart = this.addHelmChart(clusterInfo, values, false, true);
+
+        console.log(backstageHelmChart.toString);
 
         return Promise.resolve(backstageHelmChart);
     }
