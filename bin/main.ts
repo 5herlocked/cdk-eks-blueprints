@@ -12,21 +12,8 @@ const props = { env: { account, region } };
 
 const clusterProvider = blueprints.clusterBuilder().build();
 
-const backstageProps :BackstageAddOnProps = {
-    backstage: {
-        image: {
-            repository: 'public.ecr.aws/a0m0j3q7/backstage-tester',
-            tag: 'latest',
-        }
-    },
-
-    postgres: {
-        enabled: true,
-    },
-
-    ingress: {
-        enabled: true,
-    }
+const backstageProps: BackstageAddOnProps = {
+    'baseUrl': 'backstage.unicorn-rentals.io'
 };
 
 const backstageAddOn = new blueprints.BackstageAddOn(backstageProps);
