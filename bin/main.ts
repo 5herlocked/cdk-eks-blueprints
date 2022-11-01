@@ -13,7 +13,13 @@ const props = { env: { account, region } };
 const clusterProvider = blueprints.clusterBuilder().build();
 
 const backstageProps: BackstageAddOnProps = {
-    'baseUrl': 'backstage.unicorn-rentals.io'
+    baseUrl: 'backstage.unicorn-rentals.io',
+    ingressProps: {
+        enabled: true
+    },
+    postgresProps: {
+        enabled: true
+    }
 };
 
 const backstageAddOn = new blueprints.BackstageAddOn(backstageProps);

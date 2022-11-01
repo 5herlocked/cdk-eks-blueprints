@@ -240,8 +240,8 @@ const defaultProps: HelmAddOnProps & BackstageAddOnProps = {
     // Helm AddOnProps
     name: 'backstage-addon',
     namespace: 'backstage',
-    version: 'latest',
-    chart: 'redhat-developer-backstage/backstage',
+    version: '0.1.3',
+    chart: 'backstage',
     repository: 'https://redhat-developer.github.io/helm-backstage',
     release: 'blueprints-addon-backstage',
     values: {},
@@ -288,6 +288,8 @@ function populateValues(helmOptions: BackstageAddOnProps): Values {
     // Backstage Parameters setup
     const backstageImageRepo = helmOptions.registry;
     const backstageImageTag = helmOptions.version;
+    const baseUrl = helmOptions.baseUrl;
+    setPath(values, 'backstage.baseUrl', baseUrl);
     setPath(values, 'backstage.image.repository', backstageImageRepo);
     setPath(values, 'backstage.image.tag', backstageImageTag);
 
