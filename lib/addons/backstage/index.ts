@@ -274,8 +274,8 @@ const defaultProps: HelmAddOnProps & BackstageAddOnProps = {
     // Helm AddOnProps
     name: 'backstage-addon',
     namespace: 'backstage',
-    version: '0.3.1',
-    chart: 'backstage/backstage',
+    version: '0.4.0',
+    chart: 'backstage',
     repository: 'https://vinzscam.github.io/backstage-chart',
     release: 'blueprints-addon-backstage',
     values: {},
@@ -346,7 +346,7 @@ export class BackstageAddOn extends HelmAddOn {
 
         values = merge(values, this.props.values ?? {});
         // Create Helm Chart
-        const backstageHelmChart = this.addHelmChart(clusterInfo, values, false, true);
+        const backstageHelmChart = this.addHelmChart(clusterInfo, values, true, true);
 
         console.log(backstageHelmChart.toString);
 
