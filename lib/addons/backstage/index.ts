@@ -272,7 +272,7 @@ export class BackstageAddOn extends HelmAddOn {
 
         values = merge(values, this.props.values ?? {});
         // Create Helm Chart
-        const backstageHelmChart = this.addHelmChart(clusterInfo, values, false, true);
+        const backstageHelmChart = this.addHelmChart(clusterInfo, values, true, true);
 
         return Promise.resolve(backstageHelmChart);
     }
