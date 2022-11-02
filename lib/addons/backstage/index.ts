@@ -293,6 +293,9 @@ function populateValues(helmOptions: BackstageAddOnProps): Values {
     setPath(values, 'backstage.image.repository', backstageImageRepo);
     setPath(values, 'backstage.image.tag', backstageImageTag);
 
+    // Configure Routes
+    setPath(values, 'route.enabled', false);
+
     // Configure Postgres
     const postgresProps = helmOptions.postgresProps;
     if (postgresProps?.enabled) {
