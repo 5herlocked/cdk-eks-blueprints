@@ -303,5 +303,8 @@ function populateValues(helmOptions: BackstageAddOnProps): Values {
         setPath(values, 'postgres.storage.enabled', true);
     }
 
+    // Set Route.Enabled to false because it relies on OpenShift constructs
+    setPath(values, 'route.enabled', false);
+
     return values;
 }

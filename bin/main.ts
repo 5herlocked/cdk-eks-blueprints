@@ -19,7 +19,7 @@ const backstageProps: BackstageAddOnProps = {
     },
     postgresProps: {
         enabled: true
-    }
+    },
 };
 
 const backstageAddOn = new blueprints.BackstageAddOn(backstageProps);
