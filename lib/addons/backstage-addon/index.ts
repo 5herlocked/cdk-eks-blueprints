@@ -7,9 +7,7 @@ import { KubernetesSecret } from "../secrets-store/csi-driver-provider-aws-secre
 
 /**
  * Configuration options for the add-on as listed in
- * https://github.com/vinzscam/backstage-chart
- * Pivoting to use the redhat chart for backstage-deployment
- * https://github.com/redhat-developer/helm-backstage/tree/main/charts/backstage
+ * https://github.com/backstage/charts
  */
 
 export interface IngressProps {
