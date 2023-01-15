@@ -4,234 +4,147 @@ import { ClusterInfo, Values } from "../../spi";
 import { dependable, setPath} from "../../utils";
 import { HelmAddOn, HelmAddOnProps, HelmAddOnUserProps } from "../helm-addon";
 import { KubernetesSecret } from "../secrets-store/csi-driver-provider-aws-secrets";
+import { bool } from "aws-sdk/clients/signer";
 
 /**
  * Configuration options for the add-on as listed in
  * https://github.com/backstage/charts
  */
-
-export interface IngressProps {
-    /**
-     * Class Name for ingress service
-     * @default ""
-     */
-    className?: string,
-
-    /**
-     * Is access to the backstage instance enabled?
-     * @default true
-     */
-    enabled: boolean,
-
-    /**
-     * TLS Ingress secret Name
-     * @default ""
-     */
-    secretName?: string,
-}
-
-export interface PostgresExternalProps {
-
-    enabled: false,
-
-    /**
-     * HostName for Postgres database
-     * @default ""
-     */
-    databaseHost: string,
-
-    /**
-     * Name of the database
-     * @default "postgres"
-     */
-    databaseName: string,
-    
-    /**
-     * Password of external database
-     * @default ""
-     */
-    databasePassword: KubernetesSecret,
-
-    /**
-     * Port to use for external db
-     * @default 5432
-     */
-    databasePort: number,
-
-    /**
-     * Name to use for database user
-     * @default "postgres"
-     */
-    databaseUser: string,
-
-    /**
-     * Secret to be used for existing database
-     * @default ""
-     */
-    existingSecret: KubernetesSecret,
-}
-
-export interface PostgresInternalProps {
-
-    enabled: true,
-
-    /**
-     * CPU limit given to postgres instance
-     * @default "400m"
-     */
-    cpuLimit?: string,
-
-    /**
-     * Memory Limit given to postgres instance
-     * @default "596Mi"
-     */
-    memoryLimit?: string,
-
-    /**
-     * Initial compute power requested by postgres instance
-     * @default "100m"
-     */
-    cpuRequest?: string,
-
-    /**
-     * Initial memory space requested by postgres instance
-     * @default "128Mi"
-     */
-    memoryRequest?: string,
-
-    /**
-     * Admin password to be used by the postgres instance
-     * @default ""
-     */
-    adminKey?: KubernetesSecret,
-
-    /**
-     * Annotations to be applied to the service account
-     * @default {}
-     */
-    serviceAccountAnnotations?: any,
-
-    /**
-     * Name given to the postgres service account
-     * @default ""
-     */
-    serviceAccountName?: string,
-
-    /**
-     * Storage assigned to the postgres production
-     * @default "2Gi"
-     */
-    storageSize?: string,
-}
-
 export interface BackstageAddOnProps extends HelmAddOnUserProps {
     /**
-     * URL used to access the backstage user interface
-     * assigned-to: backstage.baseUrl
-     * @default ""
-     * @required
+     * Properties pertaining to Backstage
+     * Defaults described below
      */
-    baseUrl: string,
+    backstage?: BackstageProps,
 
-    /**
-     * Yaml file defining all the components
-     * TODO: Later define this as a transaparent CRD for backstage Components
-     * assigned-to: backstage.catalog.location[0].type
-     * @default "https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/all-components.yaml" 
-     */
-    catalogYaml?: string,
-
-    /**
-     * Defines Backstage image pullpolicy
-     * assigned-to: image.pullPolicy
-     * @default "Always"
-     */
-    pullPolicy?: string,
-
-    /**
-     * Defines the Backstage image refistry
-     * assigned-to: image.registry
-     * @default "ghcr.io"
-     */
-    registry?: string,
-
-    /**
-     * Defines the backstage repository to pull from
-     * assigned-to: image.repository
-     * @default "redhat-developer/redhat-backstage-build"
-     */
-    repository?: string,
-
-    /**
-     * Defines the image version/tag to use
-     * assigned-to: image.version
-     * @default "latest"
-     */
-    version?: string,
-
-    /**
-     * Secrets to be used for pulling images
-     * assigned-to: imagePullSecrets
-     * @default []
-     */
-    imagePullSecrets?: KubernetesSecret[],
-
-    /**
-     * Properties used for ingress
-     */
-    ingressProps?: IngressProps,
-
-    /**
-     * Properties used to deploy a postgres instance
-     * Props for external deployment included
-     */
-    postgresProps?: PostgresInternalProps | PostgresExternalProps,
-
-    /**
-     * Number of replicas to be created by backstage
-     * @default 1
-     */
-    replicas?: number,
-
-    /**
-     * TODO: Figure out WTF this means
-     */
-    securityContext?: any,
-
-    /**
-     * Serivce Port for backstage deployment
-     * assigned-to: service.port
-     * @default 8080
-     */
-    servicePort?: number,
-
-    /**
-     * Target port for backstage deployment
-     * assigned-to: service.targetPort
-     * @default 7007
-     */
-    targetPort?: number,
-
-    /**
-     * Serivce type definition
-     * assigned-to: service.type
-     * @default "ClusterIP"
-     */
-    type?: string
+    clusterDomain?: "",
     
-    /**
-     * Annotations to be applied to the service account
-     * assigned-to: serviceAccount.annotations
-     * @default {}
-     */
-    serviceAccountAnnotations?: any,
+    commonAnnotations?: any,
 
-    /**
-     * Name given to the backstage service account
-     * assigned-to: serviceAccount.name
-     * @default ""
-     */
-    serviceAccountName?: string,
+    commonLabels?: any,
+
+    diagnosticMode?: BackstageDiagnosticProps,
+
+    extraDeploy?: [],
+
+    fullNameOverride?: "",
+
+    global?: GlobalProps,
+
+    ingress?: IngressProps,
+
+    kubeVersion?: "",
+
+    nameOverride?: "",
+
+    networkPolicy?: NetworkPolicyProps,
+
+    postgres?: PostgresProps,
+
+    service?: ServiceProps,
+
+    serviceAccount?: ServiceAccountProps,
+
+}
+
+export interface BackstageProps {
+    appConfig?: any,
+    
+    args?: [],
+
+    command: [],
+
+    containerPorts: [],
+
+    containerSecurityContext?: any,
+
+    extraAppConfig?: [],
+    
+    extraContainers?: [],
+
+    extraEnvVars?: [],
+
+    extraEnvVarsSecrets?: [],
+
+    extraVolumeMounts?: [],
+
+    extraVolumes?: [],
+
+    image: {
+        debug: bool,
+
+        pullPolicy: "",
+
+        pullSecrets: [],
+
+        registry: "",
+
+        repository: "",
+
+        tag: "",
+    },
+
+    initContainers?: [],
+
+    podSecurityContext?: any,
+
+    resources?: any
+}
+
+export interface BackstageDiagnosticProps {
+    enabled: bool,
+
+    args?: [],
+
+    command?: [],
+}
+
+export interface GlobalProps {
+    imagePullSecrets?: [],
+
+    imageRegistry?: "",
+}
+
+export interface IngressProps {
+    enabled: bool,
+
+    annotations?: any,
+    
+    className?: "",
+
+    host?: "",
+
+    tls?: IngressTLSProps,
+}
+
+export interface IngressTLSProps {
+    enabled: bool,
+
+    secretName: ""
+}
+
+export interface NetworkPolicyProps {
+    enabled: bool,
+
+    egressRules?: EgressRulesProps,
+}
+
+export interface EgressRulesProps {
+    customRules?: [],
+}
+
+export interface PostgresProps {
+    architecture: "standalone" | "replication",
+
+    auth?: PostgresAuthProps,
+}
+
+export interface PostgresAuthProps {
+    existingSecret?: "",
+
+    password?: KubernetesSecret,
+
+    //TODO: Finish the rest of these props
 }
 
 const defaultProps: HelmAddOnProps & BackstageAddOnProps = {
@@ -240,16 +153,11 @@ const defaultProps: HelmAddOnProps & BackstageAddOnProps = {
     namespace: 'backstage',
     version: '0.1.3',
     chart: 'backstage',
+    //TODO: Verify these default props and ensure they work with the new repoitory
     repository: 'https://redhat-developer.github.io/helm-backstage',
     release: 'blueprints-addon-backstage',
     values: {},
 
-    baseUrl: '',
-
-    postgresProps: {
-        enabled: true,
-    }
-    
     /**
      * TODO: Finish testing for deployment verification and "good" common-sense defaults for the deployment
      */
@@ -283,23 +191,7 @@ export class BackstageAddOn extends HelmAddOn {
 function populateValues(helmOptions: BackstageAddOnProps): Values {
     let values = helmOptions.values ?? {};
 
-    // Backstage Parameters setup
-    const backstageImageRepo = helmOptions.registry;
-    const backstageImageTag = helmOptions.version;
-    const baseUrl = helmOptions.baseUrl;
-    setPath(values, 'backstage.baseUrl', baseUrl);
-    setPath(values, 'backstage.image.repository', backstageImageRepo);
-    setPath(values, 'backstage.image.tag', backstageImageTag);
-
-    // Configure Routes
-    setPath(values, 'route.enabled', false);
-
     // Configure Postgres
-    const postgresProps = helmOptions.postgresProps;
-    if (postgresProps?.enabled) {
-        setPath(values, 'postgres.storage.size', postgresProps.storageSize);
-        setPath(values, 'postgres.storage.enabled', true);
-    }
 
     // Set Route.Enabled to false because it relies on OpenShift constructs
     setPath(values, 'route.enabled', false);
