@@ -3,6 +3,7 @@ import * as cdk from 'aws-cdk-lib';
 
 import * as blueprints from "../lib";
 import {BackstageAddOnProps} from "../lib";
+import BlueprintConstruct from '../examples/blueprint-construct';
 
 const app = new cdk.App();
 

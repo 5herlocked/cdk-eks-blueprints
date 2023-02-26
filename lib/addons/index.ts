@@ -40,6 +40,7 @@ export * from './ebs-csi-driver';
 export * from './efs-csi-driver';
 export * from './istio-base';
 export * from './istio-control-plane';
+export * from './knative-operator';
 export * from './jupyterhub';
 export * from './backstage-addon';
 export * from './emr-on-eks';
