@@ -41,9 +41,9 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
 
     postgres?: PostgresProps,
 
-    service?: ServiceProps,
+/*    service?: ServiceProps,
 
-    serviceAccount?: ServiceAccountProps,
+    serviceAccount?: ServiceAccountProps,*/
 
 }
 
@@ -192,6 +192,7 @@ function populateValues(helmOptions: BackstageAddOnProps): Values {
     let values = helmOptions.values ?? {};
 
     // Configure Postgres
+    // setPath(values, 'postegresql.enabled', true);
 
     // Set Route.Enabled to false because it relies on OpenShift constructs
     setPath(values, 'route.enabled', false);
