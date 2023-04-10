@@ -9,7 +9,8 @@ import * as constraints from '../utils/constraints-utils';
 import * as utils from '../utils';
 import { cloneDeep } from '../utils';
 import { IKey } from "aws-cdk-lib/aws-kms";
-import {KmsKeyProvider} from "../resource-providers/kms-key";
+import {CreateKmsKeyProvider} from "../resource-providers/kms-key";
+import { ArgoGitOpsFactory } from "../addons/argocd/argo-gitops-factory";
 
 export class EksBlueprintProps {
     /**
@@ -41,7 +42,7 @@ export class EksBlueprintProps {
     /**
      * Kubernetes version (must be initialized for addons to work properly)
      */
-    readonly version?: KubernetesVersion = KubernetesVersion.V1_23;
+    readonly version?: KubernetesVersion = KubernetesVersion.V1_24;
 
     /**
      * Named resource providers to leverage for cluster resources.
@@ -56,7 +57,6 @@ export class EksBlueprintProps {
      */
     readonly enableControlPlaneLogTypes?: ControlPlaneLogType[];
 
-
     /**
      * If set to true and no resouce provider for KMS key is defined (under GlobalResources.KmsKey),
      * a default KMS encryption key will be used for envelope encryption of Kubernetes secrets (AWS managed new KMS key).
@@ -66,6 +66,11 @@ export class EksBlueprintProps {
      * Default is true.
      */
     readonly useDefaultSecretEncryption? : boolean  = true;
+
+    /**
+     * GitOps modes to be enabled. If not specified, GitOps mode is not enabled.
+     */
+    readonly enableGitOpsMode?: spi.GitOpsMode;
 }
 
 export class BlueprintPropsConstraints implements constraints.ConstraintsType<EksBlueprintProps> {
@@ -137,6 +142,11 @@ export class BlueprintBuilder implements spi.AsyncStackBuilder {
         return this;
     }
 
+    public enableGitOps(mode?: spi.GitOpsMode): this {
+        this.props = { ...this.props, ...{ enableGitOpsMode: mode ?? spi.GitOpsMode.APP_OF_APPS } };
+        return this;
+    }
+
     public withBlueprintProps(props: Partial<EksBlueprintProps>): this {
         const resourceProviders = this.props.resourceProviders!;
         this.props = { ...this.props, ...cloneDeep(props) };
@@ -177,7 +187,7 @@ export class BlueprintBuilder implements spi.AsyncStackBuilder {
     }
 
     public clone(region?: string, account?: string): BlueprintBuilder {
-        return new BlueprintBuilder().withBlueprintProps({ ...this.props })
+        return new BlueprintBuilder().withBlueprintProps(this.props)
             .account(account ?? this.env.account).region(region ?? this.env.region);
     }
 
@@ -219,11 +229,11 @@ export class EksBlueprint extends cdk.Stack {
             vpcResource = resourceContext.add(spi.GlobalResources.Vpc, new VpcProvider());
         }
 
-        const version = blueprintProps.version ?? KubernetesVersion.V1_23;
+        const version = blueprintProps.version ?? KubernetesVersion.V1_24;
         let kmsKeyResource: IKey | undefined = resourceContext.get(spi.GlobalResources.KmsKey);
 
         if (!kmsKeyResource && blueprintProps.useDefaultSecretEncryption != false) {
-            kmsKeyResource = resourceContext.add(spi.GlobalResources.KmsKey, new KmsKeyProvider());
+            kmsKeyResource = resourceContext.add(spi.GlobalResources.KmsKey, new CreateKmsKeyProvider());
         }
 
         blueprintProps = this.resolveDynamicProxies(blueprintProps, resourceContext);
@@ -239,6 +249,12 @@ export class EksBlueprint extends cdk.Stack {
         let enableLogTypes: string[] | undefined = blueprintProps.enableControlPlaneLogTypes;
         if (enableLogTypes) {
             utils.setupClusterLogging(this.clusterInfo.cluster.stack, this.clusterInfo.cluster, enableLogTypes);
+        }
+
+        if (blueprintProps.enableGitOpsMode == spi.GitOpsMode.APPLICATION) {
+            ArgoGitOpsFactory.enableGitOps();
+        } else if (blueprintProps.enableGitOpsMode == spi.GitOpsMode.APP_OF_APPS) {
+            ArgoGitOpsFactory.enableGitOpsAppOfApps();
         }
 
         const postDeploymentSteps = Array<spi.ClusterPostDeploy>();

@@ -4,7 +4,6 @@ import { KubectlV23Layer } from "@aws-cdk/lambda-layer-kubectl-v23";
 import { KubectlV24Layer } from "@aws-cdk/lambda-layer-kubectl-v24";
 import * as autoscaling from 'aws-cdk-lib/aws-autoscaling';
 import * as ec2 from "aws-cdk-lib/aws-ec2";
-import { IVpc } from "aws-cdk-lib/aws-ec2";
 import * as eks from "aws-cdk-lib/aws-eks";
 import { IKey } from "aws-cdk-lib/aws-kms";
 import { ILayerVersion } from "aws-cdk-lib/aws-lambda";
@@ -14,6 +13,8 @@ import * as utils from "../utils";
 import * as constants from './constants';
 import { AutoscalingNodeGroup, ManagedNodeGroup } from "./types";
 import assert = require('assert');
+import { ManagedPolicy } from "aws-cdk-lib/aws-iam";
+import { Tags } from "aws-cdk-lib";
 
 export function clusterBuilder() {
     return new ClusterBuilder();
@@ -133,7 +134,7 @@ export class GenericClusterPropsConstraints implements utils.ConstraintsType<Gen
 }
 
 export const defaultOptions = {
-    version: eks.KubernetesVersion.V1_23
+    version: eks.KubernetesVersion.V1_24
 };
 
 export class ClusterBuilder {
@@ -147,7 +148,7 @@ export class ClusterBuilder {
     } = {};
 
     constructor() {
-        this.props = { ...this.props, ...{ version: eks.KubernetesVersion.V1_21 } };
+        this.props = { ...this.props, ...{ version: eks.KubernetesVersion.V1_24 } };
     }
 
     withCommonOptions(options: Partial<eks.ClusterOptions>): this {
@@ -199,7 +200,7 @@ export class GenericClusterProvider implements ClusterProvider {
     /**
      * @override
      */
-    createCluster(scope: Construct, vpc: IVpc, secretsEncryptionKey: IKey | undefined): ClusterInfo {
+    createCluster(scope: Construct, vpc: ec2.IVpc, secretsEncryptionKey: IKey | undefined): ClusterInfo {
         const id = scope.node.id;
 
         // Props for the cluster.
@@ -243,9 +244,10 @@ export class GenericClusterProvider implements ClusterProvider {
         });
 
         const fargateProfiles = Object.entries(this.props.fargateProfiles ?? {});
-        fargateProfiles?.forEach(([key, options]) => this.addFargateProfile(cluster, key, options));
+        const fargateConstructs : eks.FargateProfile[] = [];
+        fargateProfiles?.forEach(([key, options]) => fargateConstructs.push(this.addFargateProfile(cluster, key, options)));
 
-        return new ClusterInfo(cluster, version, nodeGroups, autoscalingGroups);
+        return new ClusterInfo(cluster, version, nodeGroups, autoscalingGroups, fargateConstructs);
     }
 
     /**
@@ -273,6 +275,12 @@ export class GenericClusterProvider implements ClusterProvider {
                 return new KubectlV23Layer(scope, "kubectllayer23");
             case eks.KubernetesVersion.V1_22:
                 return new KubectlV22Layer(scope, "kubectllayer22");
+        }
+        
+        const minor = version.version.split('.')[1];
+
+        if(minor && parseInt(minor, 10) > 24) {
+            return new KubectlV24Layer(scope, "kubectllayer24"); // for all versions above 1.24 use 1.24 kubectl (unless explicitly supported in CDK)
         }
         return undefined;
     }
@@ -310,8 +318,8 @@ export class GenericClusterProvider implements ClusterProvider {
     /**
      * Adds a fargate profile to the cluster
      */
-    addFargateProfile(cluster: eks.Cluster, name: string, profileOptions: eks.FargateProfileOptions) {
-        cluster.addFargateProfile(name, profileOptions);
+    addFargateProfile(cluster: eks.Cluster, name: string, profileOptions: eks.FargateProfileOptions): eks.FargateProfile {
+        return cluster.addFargateProfile(name, profileOptions);
     }
 
     /**
@@ -343,21 +351,29 @@ export class GenericClusterProvider implements ClusterProvider {
             }
         };
 
-        if (nodeGroup.customAmi) {
-            // Create launch template if custom AMI is provided.
+        if (nodeGroup.launchTemplate) {
+            // Create launch template with provided launch template properties
             const lt = new ec2.LaunchTemplate(cluster, `${nodeGroup.id}-lt`, {
-                machineImage: nodeGroup.customAmi?.machineImage,
-                userData: nodeGroup.customAmi?.userData,
+                machineImage: nodeGroup.launchTemplate?.machineImage,
+                userData: nodeGroup.launchTemplate?.userData,
             });
             utils.setPath(nodegroupOptions, "launchTemplateSpec", {
                 id: lt.launchTemplateId!,
                 version: lt.latestVersionNumber,
             });
+            const customTags = Object.entries(nodeGroup.launchTemplate.customTags ?? {});
+            customTags.forEach(([key, options]) => Tags.of(lt).add(key,options));
             delete nodegroupOptions.amiType;
             delete nodegroupOptions.releaseVersion;
         }
 
-        return cluster.addNodegroupCapacity(nodeGroup.id + "-ng", nodegroupOptions);
+        const result = cluster.addNodegroupCapacity(nodeGroup.id + "-ng", nodegroupOptions);
+
+        if(nodeGroup.enableSsmPermissions) {
+            result.role.addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'));
+        }
+
+        return result;
     }
 
     private validateInput(props: GenericClusterProviderProps) {

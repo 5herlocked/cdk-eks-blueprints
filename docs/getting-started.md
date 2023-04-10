@@ -24,9 +24,10 @@ To use the `eks-blueprints` module, you must have [Node.js](https://nodejs.org/e
 Create a directory that represents you project (e.g. `my-blueprints`) and then create a new `typescript` CDK project in that directory.
 
 ```bash
+npm install -g n # may require sudo
 n stable # may require sudo 
-npm install -g aws-cdk@2.60.0 # may require sudo (Ubuntu) depending on configuration
-cdk --version # must produce 2.60.0
+npm install -g aws-cdk@2.72.0 # may require sudo (Ubuntu) depending on configuration
+cdk --version # must produce 2.72.0
 mkdir my-blueprints
 cd my-blueprints
 cdk init app --language typescript

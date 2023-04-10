@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import * as blueprints from '../lib';
+import { JupyterHubServiceType } from '../lib';
 
 describe('Unit tests for JupyterHub addon', () => {
 
@@ -16,7 +17,7 @@ describe('Unit tests for JupyterHub addon', () => {
                     storageClass: "gp2",
                     capacity: "4Gi",
                 },
-                enableIngress: false,
+                serviceType: JupyterHubServiceType.CLUSTERIP,
             }))
             .teams(new blueprints.PlatformTeam({ name: 'platform' }));
 
@@ -39,7 +40,7 @@ describe('Unit tests for JupyterHub addon', () => {
                     removalPolicy: cdk.RemovalPolicy.DESTROY,
                     capacity: '100Gi',
                 },
-                enableIngress: false,
+                serviceType: JupyterHubServiceType.CLUSTERIP,
             }))
             .teams(new blueprints.PlatformTeam({ name: 'platform' }));
 
@@ -48,7 +49,7 @@ describe('Unit tests for JupyterHub addon', () => {
         }).toThrow("Missing a dependency: EfsCsiDriverAddOn. Please add it to your list of addons.");
     });
 
-    test("Stack creation fails due to no AWS Load Balancer Controller add-on", () => {
+    test("Stack creation fails due to no AWS Load Balancer Controller add-on when using ALB", () => {
         const app = new cdk.App();
 
         const blueprint = blueprints.EksBlueprint.builder();
@@ -62,13 +63,36 @@ describe('Unit tests for JupyterHub addon', () => {
                     removalPolicy: cdk.RemovalPolicy.DESTROY,
                     capacity: '100Gi',
                 },
-                enableIngress: true,
+                serviceType: JupyterHubServiceType.ALB,
             }))
             .teams(new blueprints.PlatformTeam({ name: 'platform' }));
 
         expect(()=> {
-            blueprint.build(app, 'stack-with-no-efs-csi-addon');
-        }).toThrow("Missing a dependency for AwsLoadBalancerControllerAddOn for stack-with-no-efs-csi-addon");
+            blueprint.build(app, 'stack-with-no-aws-load-balancer-controller-addon');
+        }).toThrow("Missing a dependency: AwsLoadBalancerControllerAddOn. Please add it to your list of addons.");
+    });
+
+    test("Stack creation fails due to no AWS Load Balancer Controller add-on when using NLB", () => {
+        const app = new cdk.App();
+
+        const blueprint = blueprints.EksBlueprint.builder();
+
+        blueprint.account("123567891").region('us-west-1')
+            .addOns(
+                new blueprints.EfsCsiDriverAddOn,
+                new blueprints.JupyterHubAddOn({
+                efsConfig: {
+                    pvcName: "efs-persist",
+                    removalPolicy: cdk.RemovalPolicy.DESTROY,
+                    capacity: '100Gi',
+                },
+                serviceType: JupyterHubServiceType.NLB,
+            }))
+            .teams(new blueprints.PlatformTeam({ name: 'platform' }));
+
+        expect(()=> {
+            blueprint.build(app, 'stack-with-no-aws-load-balancer-controller-addon');
+        }).toThrow("Missing a dependency: AwsLoadBalancerControllerAddOn. Please add it to your list of addons.");
     });
 });
 

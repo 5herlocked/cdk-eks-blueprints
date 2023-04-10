@@ -1,10 +1,11 @@
 import { Construct } from "constructs";
 import {ClusterInfo, Values} from "../../spi";
 import { HelmAddOn, HelmAddOnUserProps } from "../helm-addon";
-import { EfsDriverPolicyDocument } from "./iam-policy";
+import { getEfsDriverPolicyStatements } from "./iam-policy";
 import { registries }  from "../../utils/registry-utils";
 import * as iam from "aws-cdk-lib/aws-iam";
 import {setPath} from "../../utils";
+import * as kms from "aws-cdk-lib/aws-kms";
 
 
 const EFS_CSI_DRIVER = "aws-efs-csi-driver";
@@ -25,6 +26,10 @@ export interface EfsCsiDriverProps extends HelmAddOnUserProps {
      * pods will be left of pending state
      */
     replicaCount?: number
+    /**
+     * List of KMS keys to be used for encryption
+     */
+    kmsKeys?: kms.Key[];
 
 }
 
@@ -32,7 +37,7 @@ export interface EfsCsiDriverProps extends HelmAddOnUserProps {
  * Defaults options for the add-on
  */
 const defaultProps: EfsCsiDriverProps = {
-    version: '2.3.6',
+    version: '2.4.1',
     namespace: "kube-system",
     repository: "https://kubernetes-sigs.github.io/aws-efs-csi-driver/",
     name: EFS_CSI_DRIVER,
@@ -56,7 +61,7 @@ export class EfsCsiDriverAddOn extends HelmAddOn {
             name: EFS_CSI_CONTROLLER_SA,
             namespace: this.options.namespace,
         });
-        EfsDriverPolicyDocument().Statement.forEach((statement) => {
+        getEfsDriverPolicyStatements(this.options?.kmsKeys).forEach((statement) => {
             serviceAccount.addToPrincipalPolicy(iam.PolicyStatement.fromJson(statement));
         });
 
@@ -89,6 +94,8 @@ function populateValues(helmOptions: EfsCsiDriverProps, clusterName: string,
     setPath(values, "clusterName",  clusterName);
     setPath(values, "controller.serviceAccount.create",  false);
     setPath(values, "controller.serviceAccount.name",  serviceAccountName);
+    setPath(values, "node.serviceAccount.create",  false);
+    setPath(values, "node.serviceAccount.name",  serviceAccountName);
     setPath(values, "replicaCount",  helmOptions.replicaCount);
     setPath(values, "image.repository",  repository);
 

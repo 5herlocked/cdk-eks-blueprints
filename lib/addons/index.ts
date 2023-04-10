@@ -3,6 +3,7 @@ export * from './adot';
 export * from './amp';
 export * from './appmesh';
 export * from './argocd';
+export * from './argocd/argo-gitops-factory';
 export * from './aws-for-fluent-bit';
 export * from './aws-loadbalancer-controller';
 export * from './aws-node-termination-handler';
@@ -44,6 +45,8 @@ export * from './knative-operator';
 export * from './jupyterhub';
 export * from './backstage-addon';
 export * from './emr-on-eks';
+export * from './aws-batch-on-eks';
+export * from './upbound-universal-crossplane';
 
 export class Constants {
     public static readonly BLUEPRINTS_ADDON = "blueprints-addon";
