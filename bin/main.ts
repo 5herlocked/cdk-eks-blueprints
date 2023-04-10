@@ -14,50 +14,6 @@ const props = { env: { account, region } };
 const clusterProvider = blueprints.clusterBuilder().build();
 
 const backstageProps: BackstageAddOnProps = {
-    backstage: {
-        appConfig: undefined,
-        args: [],
-        command: [],
-        containerPorts: [],
-        containerSecurityContext: undefined,
-        extraAppConfig: [],
-        extraContainers: [],
-        extraEnvVars: [],
-        extraEnvVarsSecrets: [],
-        extraVolumeMounts: [],
-        extraVolumes: [],
-        image: {
-            debug: true,
-            pullPolicy: "",
-            pullSecrets: [],
-            registry: "",
-            repository: "",
-            tag: ""
-        },
-        initContainers: [],
-        podSecurityContext: undefined,
-        resources: undefined
-
-    },
-    diagnosticMode: {
-        args: [], command: [], enabled: true
-
-    },
-    global: {
-        imagePullSecrets: [], imageRegistry: ""
-
-    },
-    ingress: {
-        annotations: undefined,
-        className: "",
-        enabled: true,
-        host: "",
-        tls: {
-            enabled: true,
-            secretName: ""
-        }
-    },
-    postgres: undefined
 
 };
 

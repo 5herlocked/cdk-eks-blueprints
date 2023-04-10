@@ -1,166 +1,260 @@
 import merge from "ts-deepmerge";
-import { Construct } from "constructs";
-import { ClusterInfo, Values } from "../../spi";
-import { dependable, setPath} from "../../utils";
-import { HelmAddOn, HelmAddOnProps, HelmAddOnUserProps } from "../helm-addon";
-import { KubernetesSecret } from "../secrets-store/csi-driver-provider-aws-secrets";
-import { bool } from "aws-sdk/clients/signer";
+import {Construct} from "constructs";
+import {ClusterInfo, Values} from "../../spi";
+import {dependable} from "../../utils";
+import {HelmAddOn, HelmAddOnProps, HelmAddOnUserProps} from "../helm-addon";
 
 /**
  * Configuration options for the add-on as listed in
  * https://github.com/backstage/charts
  */
 export interface BackstageAddOnProps extends HelmAddOnUserProps {
-    /**
-     * Properties pertaining to Backstage
-     * Defaults described below
-     */
     backstage?: BackstageProps,
 
-    clusterDomain?: "",
-    
-    commonAnnotations?: any,
-
-    commonLabels?: any,
-
-    diagnosticMode?: BackstageDiagnosticProps,
-
-    extraDeploy?: [],
-
-    fullNameOverride?: "",
+    diagnosticMode?: DiagnosticProps,
 
     global?: GlobalProps,
 
     ingress?: IngressProps,
 
-    kubeVersion?: "",
+    metrics?: MetricsProps,
 
-    nameOverride?: "",
-
-    networkPolicy?: NetworkPolicyProps,
+    networkPolicy?: NetworkProps,
 
     postgres?: PostgresProps,
 
-/*    service?: ServiceProps,
+    service?: ServiceProps,
 
-    serviceAccount?: ServiceAccountProps,*/
+    serviceAccount?: ServiceAccountProps,
+
+    clusterDomain?: string,
+    commonAnnotations?: string,
+    commonLabels?: string,
+    extraDeploy?: string,
+    fullNameOverride?: string,
+    kubeVersion?: string,
+    nameOverride?: string,
 
 }
 
 export interface BackstageProps {
-    appConfig?: any,
-    
-    args?: [],
+    annotations?: {
+        [key: string]: string
+    },
 
-    command: [],
+    appConfig?: {
+        [key: string]: string
+    },
 
-    containerPorts: [],
+    args?: string[],
+
+    command?: string[],
+
+    containerPorts?: {
+        [key: string]: string
+    },
 
     containerSecurityContext?: any,
 
-    extraAppConfig?: [],
-    
-    extraContainers?: [],
+    extraAppConfig?: string[],
+    extraContainers?: string[],
+    extraEnvVars?: string[],
+    extraEnvVarsSecrets?: string[],
+    extraVolumes?: string[],
 
-    extraEnvVars?: [],
+    image?: {
+        debug?: boolean,
+        pullPolicy?: string,
+        pullSecrets?: string[],
+        registry?: string,
+        repository?: string,
+        tag?: string
+    }
 
-    extraEnvVarsSecrets?: [],
+    initContainers?: string[],
+    installDir?: string,
 
-    extraVolumeMounts?: [],
-
-    extraVolumes?: [],
-
-    image: {
-        debug: bool,
-
-        pullPolicy: "",
-
-        pullSecrets: [],
-
-        registry: "",
-
-        repository: "",
-
-        tag: "",
+    nodeSelector?: {
+        [key: string]: string
     },
 
-    initContainers?: [],
+    podAnnotations?: {
+        [key: string]: string
+    },
 
-    podSecurityContext?: any,
+    podSecurityContext?: {
+        [key: string]: string
+    },
 
-    resources?: any
+    replicas?: number,
+
+    resources?: {
+        [key: string]: string
+    },
+
+    tolerations?: string[]
 }
 
-export interface BackstageDiagnosticProps {
-    enabled: bool,
-
-    args?: [],
-
-    command?: [],
+export interface DiagnosticProps {
+    args?: string[],
+    command?: string[],
+    enabled?: boolean,
 }
 
 export interface GlobalProps {
-    imagePullSecrets?: [],
-
-    imageRegistry?: "",
+    imagePullSecrets?: string[],
+    imageRegistry?: string,
 }
 
 export interface IngressProps {
-    enabled: bool,
+    annotations?: {
+        [key: string]: string
+    },
 
-    annotations?: any,
-    
-    className?: "",
+    className?: string,
+    enabled?: boolean,
+    host?: string,
 
-    host?: "",
-
-    tls?: IngressTLSProps,
+    tls?: {
+        enabled: boolean,
+        secretName: string,
+    }
 }
 
-export interface IngressTLSProps {
-    enabled: bool,
+export interface MetricsProps {
+    serviceMonitor?: {
+        annotations?: {
+            [key: string]: string
+        },
 
-    secretName: ""
+        enabled?: boolean,
+        interval?: string,
+
+        labels?: {
+            [key: string]: string
+        },
+
+        path?: string,
+    }
 }
 
-export interface NetworkPolicyProps {
-    enabled: bool,
+export interface NetworkProps {
+    egressRules?: {
+        customRules?: string[],
+    },
 
-    egressRules?: EgressRulesProps,
-}
-
-export interface EgressRulesProps {
-    customRules?: [],
+    enabled?: boolean,
 }
 
 export interface PostgresProps {
-    architecture: "standalone" | "replication",
+    architecture?: "standalone" | "replication",
 
-    auth?: PostgresAuthProps,
+    auth?: {
+        existingSecret?: string,
+        password?: string,
+
+        secretKeys?: {
+            adminPasswordKey?: string,
+            replicationPasswordKey?: string,
+            userPasswordKey?: string
+        },
+
+        username?: string,
+    }
+
+    enabled?: boolean
 }
 
-export interface PostgresAuthProps {
-    existingSecret?: "",
+export interface ServiceProps {
+    annotations?: {
+        [key: string]: string
+    },
 
-    password?: KubernetesSecret,
+    clusterIp?: string,
+    externalTrafficPolicy?: string,
+    extraPorts?: string[],
+    loadBalancerIp?: string,
+    loadBalancerSourceRanges?: string[],
 
-    //TODO: Finish the rest of these props
+    nodePorts?: {
+        [key: string]: string
+    },
+
+    ports?: {
+        name: string,
+        targetPort: string,
+        sessionAffinity?: string,
+    },
+
+    type: string
+}
+
+export interface ServiceAccountProps {
+    annotations?: {
+        [key: string]: string
+    },
+
+    automountServiceAccountToken?: boolean,
+    create?: boolean,
+
+    labels?: {
+        [key: string]: string
+    },
+
+    name?: string,
 }
 
 const defaultProps: HelmAddOnProps & BackstageAddOnProps = {
     // Helm AddOnProps
     name: 'backstage-addon',
     namespace: 'backstage',
-    version: '0.1.3',
+    version: '0.21.0',
     chart: 'backstage',
     //TODO: Verify these default props and ensure they work with the new repoitory
-    repository: 'https://redhat-developer.github.io/helm-backstage',
+    repository: 'https://backstage.github.io/charts',
     release: 'blueprints-addon-backstage',
     values: {},
-
-    /**
-     * TODO: Finish testing for deployment verification and "good" common-sense defaults for the deployment
-     */
+    backstage: {
+        containerPorts: {
+            "backend": "7007",
+        },
+        image: {
+            debug: false,
+            registry: "ghcr.io",
+            repository: "backstage/backstage",
+            tag: "latest"
+        },
+        installDir: "/app"
+    },
+    clusterDomain: "cluster.local",
+    diagnosticMode: {
+        enabled: false,
+    },
+    ingress: {
+        enabled: false
+    },
+    metrics: {
+        serviceMonitor: {
+            enabled: false,
+        }
+    },
+    networkPolicy: {
+        enabled: false,
+    },
+    postgres: {
+        enabled: false
+    },
+    service: {
+        nodePorts: {
+            "backend": "7007"
+        },
+        ports: {
+            name: "http-backend",
+            targetPort: "backend",
+            sessionAffinity: "None"
+        },
+        type: "ClusterIP"
+    }
 };
 
 export class BackstageAddOn extends HelmAddOn {
@@ -189,13 +283,8 @@ export class BackstageAddOn extends HelmAddOn {
  * @param helmOptions User provided values to customize the chart
  */
 function populateValues(helmOptions: BackstageAddOnProps): Values {
-    let values = helmOptions.values ?? {};
-
     // Configure Postgres
     // setPath(values, 'postegresql.enabled', true);
 
-    // Set Route.Enabled to false because it relies on OpenShift constructs
-    setPath(values, 'route.enabled', false);
-
-    return values;
+    return helmOptions.values ?? {};
 }
