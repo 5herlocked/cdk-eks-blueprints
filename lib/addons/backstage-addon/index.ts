@@ -1,7 +1,8 @@
 import merge from "ts-deepmerge";
+import * as dot from 'dot-object';
 import {Construct} from "constructs";
 import {ClusterInfo, Values} from "../../spi";
-import {dependable} from "../../utils";
+import {dependable, escapeDots} from "../../utils";
 import {HelmAddOn, HelmAddOnProps, HelmAddOnUserProps} from "../helm-addon";
 
 /**
@@ -210,51 +211,52 @@ const defaultProps: HelmAddOnProps & BackstageAddOnProps = {
     namespace: 'backstage',
     version: '0.21.0',
     chart: 'backstage',
-    //TODO: Verify these default props and ensure they work with the new repoitory
+    //TODO: Verify these default props and ensure they work with the new repository
     repository: 'https://backstage.github.io/charts',
     release: 'blueprints-addon-backstage',
-    values: {},
-    backstage: {
-        containerPorts: {
-            "backend": "7007",
+    values: {
+        backstage: {
+            containerPorts: {
+                "backend": "7007",
+            },
+            image: {
+                debug: false,
+                registry: "public.ecr.aws",
+                repository: "a0m0j3q7/backstage-tester",
+                tag: "latest",
+            },
+            installDir: "/app"
         },
-        image: {
-            debug: false,
-            registry: "ghcr.io",
-            repository: "backstage/backstage",
-            tag: "latest"
-        },
-        installDir: "/app"
-    },
-    clusterDomain: "cluster.local",
-    diagnosticMode: {
-        enabled: false,
-    },
-    ingress: {
-        enabled: false
-    },
-    metrics: {
-        serviceMonitor: {
+        clusterDomain: "cluster.local",
+        diagnosticMode: {
             enabled: false,
+        },
+        ingress: {
+            enabled: false
+        },
+        metrics: {
+            serviceMonitor: {
+                enabled: false,
+            }
+        },
+        networkPolicy: {
+            enabled: false,
+        },
+        postgres: {
+            enabled: false
+        },
+        service: {
+            nodePorts: {
+                "backend": "7007"
+            },
+            ports: {
+                name: "http-backend",
+                targetPort: "backend",
+                sessionAffinity: "None"
+            },
+            type: "ClusterIP"
         }
     },
-    networkPolicy: {
-        enabled: false,
-    },
-    postgres: {
-        enabled: false
-    },
-    service: {
-        nodePorts: {
-            "backend": "7007"
-        },
-        ports: {
-            name: "http-backend",
-            targetPort: "backend",
-            sessionAffinity: "None"
-        },
-        type: "ClusterIP"
-    }
 };
 
 export class BackstageAddOn extends HelmAddOn {
@@ -268,13 +270,33 @@ export class BackstageAddOn extends HelmAddOn {
 
     @dependable('EbsCsiDriverAddOn')
     deploy(clusterInfo: ClusterInfo): Promise<Construct> {
-        let values = populateValues(this.options);
+        // let values = populateValues(this.options);
 
-        values = merge(values, this.props.values ?? {});
+        const normalizedValues = this.normalizeValues(this.options.values!);
+        const flatValues = dot.dot(normalizedValues);
+        console.log(flatValues);
+
+        // values = merge(values, this.props.values ?? {});
         // Create Helm Chart
-        const backstageHelmChart = this.addHelmChart(clusterInfo, values, true, true);
+        const backstageHelmChart = this.addHelmChart(clusterInfo, flatValues, true, true);
 
         return Promise.resolve(backstageHelmChart);
+    }
+
+    normalizeValues(obj: Values): Values {
+        Object.keys(obj).forEach(key => {
+            if (typeof obj[key] === 'object' && obj[key] !== null) {
+                obj[key] = this.normalizeValues(obj[key]);
+            }
+
+            const escapedKey = escapeDots(key);
+            if (escapedKey != key) {
+                obj[escapedKey] = obj[key];
+                delete obj[key];
+            }
+        });
+
+        return obj;
     }
 }
 
@@ -282,9 +304,9 @@ export class BackstageAddOn extends HelmAddOn {
  * populateValues populates the appropriate values used to customize the Helm chart
  * @param helmOptions User provided values to customize the chart
  */
-function populateValues(helmOptions: BackstageAddOnProps): Values {
-    // Configure Postgres
-    // setPath(values, 'postegresql.enabled', true);
-
-    return helmOptions.values ?? {};
-}
+// function populateValues(helmOptions: BackstageAddOnProps): Values {
+//     // Configure Postgres
+//     // setPath(values, 'postegresql.enabled', true);
+//
+//     return helmOptions.values ?? {};
+// }
