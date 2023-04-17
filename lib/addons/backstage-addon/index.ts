@@ -63,13 +63,13 @@ export interface BackstageProps {
     extraEnvVarsSecrets?: string[],
     extraVolumes?: string[],
 
-    image?: {
+    image: {
         debug?: boolean,
         pullPolicy?: string,
         pullSecrets?: string[],
-        registry?: string,
-        repository?: string,
-        tag?: string
+        registry: string,
+        repository: string,
+        tag: string
     }
 
     initContainers?: string[],
@@ -269,12 +269,15 @@ export class BackstageAddOn extends HelmAddOn {
     }
 
     @dependable('EbsCsiDriverAddOn')
+    @dependable('SecretsStoreAddOn')
     deploy(clusterInfo: ClusterInfo): Promise<Construct> {
         // let values = populateValues(this.options);
 
         const normalizedValues = this.normalizeValues(this.options.values!);
         const flatValues = dot.dot(normalizedValues);
         console.log(flatValues);
+
+
 
         // values = merge(values, this.props.values ?? {});
         // Create Helm Chart
