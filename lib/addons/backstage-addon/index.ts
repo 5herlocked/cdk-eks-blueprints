@@ -1,6 +1,6 @@
 import { Construct } from 'constructs';
 import { HelmAddOn, HelmAddOnUserProps } from "../helm-addon";
-import { setPath } from "../../utils";
+import {escapeDots, setPath} from "../../utils";
 import { dependable } from "../../utils";
 import { ClusterInfo, Values } from "../../spi";
 import {
@@ -28,6 +28,16 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
     postgresPort?: number,
     postgresUser?: string,
     postgresPassword?: string
+
+    values: {
+        backstage: BackstageProps,
+        diagnosticMode: DiagnosticProps,
+        ingress: IngressProps,
+        metrics: MetricsProps,
+        networkPolicy: NetworkProps,
+        service: ServiceProps,
+        serviceAccount: ServiceAccountProps,
+    }
 }
 
 /**
@@ -66,6 +76,8 @@ export class BackstageAddOn extends HelmAddOn {
     return Promise.resolve(chart);
   }
 }
+
+
 
 /**
  * populateValues populates the appropriate values used to customize the Helm chart
