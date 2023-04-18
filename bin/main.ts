@@ -32,7 +32,7 @@ const clusterProvider = new blueprints.GenericClusterProvider({
 });
 
 blueprints.EksBlueprint.builder()
-  .resourceProvider(blueprints.GlobalResources.Vpc, new VpcProvider(undefined, "10.0.0.0/16", ["10.0.0.0/24","10.0.1.0/24","10.0.2.0/24"]))
+  .resourceProvider(blueprints.GlobalResources.Vpc, new VpcProvider(undefined, "20.0.0.0/16", ["20.0.1.0/24","20.0.2.0/24","20.0.3.0/24"]))
   .resourceProvider(blueprints.GlobalResources.Rds, new AuroraClusterProvider({
     auroraEngine: DatabaseClusterEngine.auroraPostgres(
       { version: AuroraPostgresEngineVersion.VER_14_6 }
