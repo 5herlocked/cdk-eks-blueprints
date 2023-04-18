@@ -4,6 +4,7 @@ import { GlobalResources, ResourceContext, ResourceProvider } from "../spi";
 import {IClusterEngine, IDatabaseCluster, InstanceProps} from "aws-cdk-lib/aws-rds";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as kms from "aws-cdk-lib/aws-kms";
+import {IVpc} from "aws-cdk-lib/aws-ec2";
 
 
 export interface RdsInstanceProps {
@@ -31,9 +32,9 @@ export class AuroraClusterProvider
     const id = context.scope.node.id;
 
     const instanceProps: InstanceProps = this.options.instanceProps ?? {
-      vpc: new ec2.Vpc(
+      vpc: context.get(GlobalResources.Vpc) as IVpc ?? new ec2.Vpc(
         context.scope,
-        this.options.name || `${id}-Vpc`
+        `${this.options.name}-${id}-Vpc`
       ),
     };
 
