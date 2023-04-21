@@ -1,7 +1,6 @@
 import { Construct } from 'constructs';
 import { HelmAddOn, HelmAddOnUserProps } from "../helm-addon";
-import {escapeDots, setPath} from "../../utils";
-import { dependable } from "../../utils";
+import { dependable, setPath } from "../../utils";
 import {ClusterInfo, GlobalResources, Values} from "../../spi";
 import * as rds from "aws-cdk-lib/aws-rds";
 import {
@@ -71,7 +70,7 @@ export class BackstageAddOn extends HelmAddOn {
     this.options = this.props as BackstageAddOnProps;
   }
 
-  @dependable('AwsLoadBalancerAddOn')
+  @dependable('AwsLoadBalancerControllerAddOn')
   @dependable('ExternalSecretsAddOn')
   deploy(clusterInfo: ClusterInfo): Promise<Construct> {
     let values: Values = populateValues(clusterInfo, this.options);
