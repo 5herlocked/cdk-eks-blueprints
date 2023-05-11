@@ -5,7 +5,7 @@ import * as blueprints from '../lib';
 import {KubernetesVersion, NodegroupAmiType} from "aws-cdk-lib/aws-eks";
 import {AuroraClusterProvider} from "../lib/resource-providers/rds";
 import {AuroraPostgresEngineVersion, DatabaseClusterEngine} from "aws-cdk-lib/aws-rds";
-import {GlobalResources, LookupHostedZoneProvider, VpcProvider} from "../lib";
+import {GlobalResources, VpcProvider} from "../lib";
 // import BlueprintConstruct from '../examples/blueprint-construct';
 
 const app = new cdk.App();
@@ -43,6 +43,7 @@ const addOns = [
 ];
 
 blueprints.EksBlueprint.builder()
+  .resourceProvider("HostedZone", new blueprints.ImportHostedZoneProvider('Z09914292UPR9DOR1B1Z2'))
   .resourceProvider(blueprints.GlobalResources.Vpc, new VpcProvider(undefined, "20.0.0.0/16", ["20.0.1.0/24", "20.0.2.0/24", "20.0.3.0/24"]))
   .resourceProvider(blueprints.GlobalResources.Rds, new AuroraClusterProvider({
     auroraEngine: DatabaseClusterEngine.auroraPostgres(

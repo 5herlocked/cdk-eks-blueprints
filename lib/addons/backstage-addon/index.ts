@@ -9,6 +9,11 @@ import {
     PostgresProps, ServiceProps, ServiceAccountProps
 } from "./backstage-values";
 import { ICertificate } from "aws-cdk-lib/aws-certificatemanager";
+import {EksBlueprint} from "../../stacks";
+import {KubernetesManifest} from "aws-cdk-lib/aws-eks";
+import {ISecret} from "aws-cdk-lib/aws-secretsmanager";
+import {data} from "aws-cdk/lib/logging";
+import {SecretValue} from "aws-cdk-lib";
 
 /**
  * User provided options for the Helm Chart
@@ -24,10 +29,7 @@ export interface BackstageAddOnProps extends HelmAddOnUserProps {
     imageRepository: string,
     imageTag?: string,
     baseUrl: string,
-    postgresHost?: string,
-    postgresPort?: number,
-    postgresUser?: string,
-    postgresPassword?: string
+    databaseSecretArn: string,
 
     values: {
         backstage: BackstageProps,
@@ -80,10 +82,9 @@ export class BackstageAddOn extends HelmAddOn {
   }
 }
 
-
-
 /**
  * populateValues populates the appropriate values used to customize the Helm chart
+ * @param clusterInfo
  * @param helmOptions User provided values to customize the chart
  */
 function populateValues(clusterInfo: ClusterInfo, helmOptions: BackstageAddOnProps): Values {
@@ -95,38 +96,50 @@ function populateValues(clusterInfo: ClusterInfo, helmOptions: BackstageAddOnPro
     "alb.ingress.kubernetes.io/certificate-arn": clusterInfo.getResource<ICertificate>(helmOptions.certificateResourceName)?.certificateArn
   };
 
-  const database = {
-    "client": "pg",
-    "connection": {
-      "host": helmOptions.postgresHost,
-      "port": helmOptions.postgresPort,
-      "user": helmOptions.postgresUser,
-      "password": helmOptions.postgresPassword,
+  const databaseSecrets = clusterInfo.getResource<ISecret>(helmOptions.databaseSecretArn)?.secretValue;
+
+  const context = clusterInfo.getResourceContext();
+  const db = context.get(GlobalResources.Rds) as rds.DatabaseCluster;
+
+  let database: { client: string; connection: { password: any; port: any; host: any; user: any } };
+
+  if (databaseSecrets == undefined && db == undefined) {
+    throw new Error("Please define either a pre-existing databaseSecretArn or an RDS ResourceProvider");
+  } else if (databaseSecrets != undefined) {
+    // database Secrets manually defined
+    const secrets = databaseSecrets.toJSON();
+
+    database = {
+      "client": "pg",
+      "connection": {
+        "host": secrets.host,
+        "port": secrets.port,
+        "user": secrets.user,
+        "password": secrets.password,
+      }
+    };
+
+    setPath(values, "backstage-addon.appConfig.backend.database", database);
+  } else {
+    // database defined with resource provider
+    const secrets = db.secret?.secretValue;
+
+    if (secrets == undefined) {
+      throw new Error("The database resource provider didn't define a secret.");
     }
-  };
+    const jsonSecrets = secrets.toJSON();
 
-  if ( helmOptions.postgresHost == undefined || helmOptions.postgresPort == undefined ||
-    helmOptions.postgresUser == undefined || helmOptions.postgresPassword == undefined ) {
-    // If helmOptions for postgres aren't defined
-    // Check the context
+    database = {
+      "client": "pg",
+      "connection": {
+        "host": jsonSecrets.host,
+        "port": jsonSecrets.port,
+        "user": jsonSecrets.user,
+        "password": jsonSecrets.password,
+      }
+    };
 
-    const context = clusterInfo.getResourceContext();
-    const rds = context.get(GlobalResources.Rds) as rds.DatabaseCluster;
-    if (rds == undefined) {
-      throw new Error("Please define an RDS Cluster as a resource provider");
-    }
-
-    const secret = rds.secret;
-    if (secret == undefined) {
-      throw new Error("RDS Cluster does not have a secret defined");
-    }
-
-    const values = secret.secretValue.toJSON();
-
-    database.connection.host = values.host!;
-    database.connection.port = values.port!;
-    database.connection.user = values.user!;
-    database.connection.password = values.password!;
+    setPath(values, "backstage-addon.appConfig.backend.database", database);
   }
 
   setPath(values, "ingress.enabled", true);
@@ -140,7 +153,6 @@ function populateValues(clusterInfo: ClusterInfo, helmOptions: BackstageAddOnPro
 
   setPath(values, "backstage-addon.appConfig.app.baseUrl", helmOptions.baseUrl);
   setPath(values, "backstage-addon.appConfig.backend.baseUrl", helmOptions.baseUrl);
-  setPath(values, "backstage-addon.appConfig.backend.database", database);
 
   setPath(values, "backstage-addon.command", ["node", "packages/backend", "--config", "app-config.yaml"]);
 
