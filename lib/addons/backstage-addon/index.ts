@@ -96,16 +96,21 @@ function populateValues(clusterInfo: ClusterInfo, helmOptions: BackstageAddOnPro
     "alb.ingress.kubernetes.io/certificate-arn": clusterInfo.getResource<ICertificate>(helmOptions.certificateResourceName)?.certificateArn
   };
 
+  let db;
   const databaseSecrets = clusterInfo.getResource<ISecret>(helmOptions.databaseSecretArn)?.secretValue;
 
-  const context = clusterInfo.getResourceContext();
-  const db = context.get(GlobalResources.Rds) as rds.DatabaseCluster;
+  try {
+    const context = clusterInfo.getResourceContext();
+    db = context.get(GlobalResources.Rds) as rds.DatabaseCluster;
+  } catch {
+    if (databaseSecrets == undefined) {
+      throw new Error("Please define either a pre-existing databaseSecretArn or an RDS ResourceProvider");
+    }
+  }
 
   let database: { client: string; connection: { password: any; port: any; host: any; user: any } };
 
-  if (databaseSecrets == undefined && db == undefined) {
-    throw new Error("Please define either a pre-existing databaseSecretArn or an RDS ResourceProvider");
-  } else if (databaseSecrets != undefined) {
+  if (databaseSecrets != undefined) {
     // database Secrets manually defined
     const secrets = databaseSecrets.toJSON();
 
@@ -120,12 +125,12 @@ function populateValues(clusterInfo: ClusterInfo, helmOptions: BackstageAddOnPro
     };
 
     setPath(values, "backstage-addon.appConfig.backend.database", database);
-  } else {
+  } else if (db != undefined) {
     // database defined with resource provider
     const secrets = db.secret?.secretValue;
 
     if (secrets == undefined) {
-      throw new Error("The database resource provider didn't define a secret.");
+      throw new Error("The database resource provider didn't define a secret. This should not have happened.");
     }
     const jsonSecrets = secrets.toJSON();
 
@@ -140,6 +145,8 @@ function populateValues(clusterInfo: ClusterInfo, helmOptions: BackstageAddOnPro
     };
 
     setPath(values, "backstage-addon.appConfig.backend.database", database);
+  } else {
+    throw new Error("Please define either a pre-existing databaseSecretArn or an RDS ResourceProvider");
   }
 
   setPath(values, "ingress.enabled", true);
