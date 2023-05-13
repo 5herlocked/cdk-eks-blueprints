@@ -6,12 +6,14 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import {IVpc} from "aws-cdk-lib/aws-ec2";
 
 
+// Future set of props for Generic RDS Instances and not just aurora clusters
 export interface RdsInstanceProps {
   readonly name?: string;
   readonly rdsProps?: Omit<rds.DatabaseInstanceProps, "storageEncryptionKey">;
   readonly rdsEncryptionKeyResourceName?: string;
 }
 
+// Set of props used for standing up RDS Aurora Clusters as RDS Resource Providers
 export interface AuroraClusterProps {
   readonly name?: string;
   readonly clusterProps?: Omit<rds.DatabaseClusterProps, "engine" | "instanceProps">
